@@ -1,6 +1,6 @@
 {
   "name": "shush",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Shush your computer",
   "main": "./dist/main.js",
   "scripts": {
@@ -30,7 +30,6 @@
     "typescript": "3.8.3"
   },
   "dependencies": {
-    "asar": "^2.1.0",
     "electron-log": "4.0.7",
     "electron-updater": "4.2.4",
     "loudness": "git+https://github.com/RyanAfrish7/node-loudness.git",
