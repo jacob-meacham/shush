@@ -1,10 +1,52 @@
-const { ipcRenderer, createMicrophoneStream } = window
+const { ipcRenderer } = window
+
+interface Shusher {
+    analyze(): { shouldShush: boolean, data?: object }
+}
+
+class VolumeShusher implements Shusher {
+    analyzer: AnalyserNode
+    dataArray: Uint8Array
+
+    constructor(audioContext: AudioContext, source: AudioNode) {
+        this.analyzer = audioContext.createAnalyser()
+        
+        this.analyzer.fftSize = 2048
+        source.connect(this.analyzer)
+
+        this.dataArray = new Uint8Array(this.analyzer.frequencyBinCount)
+    }
+
+    analyze() {
+        this.analyzer.getByteFrequencyData(this.dataArray)
+    
+        // Get the peak frequency value.
+        var peakFrequency = Math.max.apply(null, this.dataArray)
+
+        return {
+            shouldShush: peakFrequency > 200,
+            data: {
+                peakFrequency
+            }
+        }
+    }
+}
+
+// TODO
+class NLPShusher implements Shusher {
+    analyze() {
+        return {
+            shouldShush: false
+        }
+    }
+
+    start() {
+
+    }
+}
 
 let isEnabled = true
-//const micStream = createMicrophoneStream({ context: audioContext })
-let analyzer: AnalyserNode
-let bufferLength: number
-let dataArray: Uint8Array
+let shusher: Shusher
 
 navigator.getUserMedia({
     audio: true,
@@ -13,35 +55,27 @@ navigator.getUserMedia({
 
 function handleStream (stream: MediaStream) {
     console.log('Handling user stream')
-    //micStream.setStream(stream)
     const audioContext = new AudioContext()
     const source = audioContext.createMediaStreamSource(stream)
-    analyzer = audioContext.createAnalyser()
-    analyzer.fftSize = 2048
-    analyzer.connect(audioContext.destination)
-    bufferLength = analyzer.frequencyBinCount
-    dataArray = new Uint8Array(bufferLength)
-    a()
+
+    shusher = new VolumeShusher(audioContext, source)
+    analyze()
 }
 
-function a() {
-    analyzer.getByteTimeDomainData(dataArray)
-    ipcRenderer.send('mic-stream', {
-        max: analyzer.maxDecibels,
-    })
-    requestAnimationFrame(a)
+function analyze() {
+    if (isEnabled) {
+        const { shouldShush, data } = shusher.analyze()
+        if (shouldShush) {
+            ipcRenderer.send('shush', data)
+        }
+    }
+
+    requestAnimationFrame(analyze)
 }
 
 function handleError (e: MediaStreamError) {
     console.log(e)
 }
-
-// micStream.on('data', function(chunk: Buffer) {
-//     ipcRenderer.send('mic-stream', {
-//         max: analyzer.maxDecibels,
-//         enabled: isEnabled
-//     })
-// })
 
 window.ipcRenderer.on('enabled', (event, enabled) => {
     isEnabled = enabled

@@ -1,6 +1,7 @@
 import { app, Tray, Menu, systemPreferences, ipcMain } from 'electron'
 import { menubar, Menubar } from 'menubar'
 import * as path from 'path'
+import { audio } from 'system-control'
 
 try {
   require('electron-reloader')(module)
@@ -53,8 +54,9 @@ async function setShushEnabled() {
   menuBar.window.webContents.send('enabled', shushEnabled)
 }
 
-ipcMain.on('mic-stream', (event, obj) => {
-  console.log(obj)
+ipcMain.on('shush', async (event, data = {}) => {
+  console.log('Shush!', data)
+  await audio.muted(true)
 })
 
 

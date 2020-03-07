@@ -22,7 +22,6 @@
   "dependencies": {
     "loudness": "git+https://github.com/RyanAfrish7/node-loudness.git",
     "menubar": "8.0.0",
-    "microphone-stream": "5.0.1",
     "system-control": "0.1.1"
   }
 }
