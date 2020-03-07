@@ -1,4 +1,4 @@
-const { ipcRenderer } = window
+const { log, ipcRenderer } = window
 
 interface Shusher {
     analyze(): { shouldShush: boolean, data?: object }
@@ -48,13 +48,14 @@ class NLPShusher implements Shusher {
 let isEnabled = true
 let shusher: Shusher
 
+log.info('Running the renderer')
 navigator.getUserMedia({
     audio: true,
     video: false
 }, handleStream, handleError)
 
 function handleStream (stream: MediaStream) {
-    console.log('Handling user stream')
+    log.info('Handling user stream')
     const audioContext = new AudioContext()
     const source = audioContext.createMediaStreamSource(stream)
 
@@ -74,7 +75,7 @@ function analyze() {
 }
 
 function handleError (e: MediaStreamError) {
-    console.log(e)
+    log.error(e)
 }
 
 window.ipcRenderer.on('enabled', (event, enabled) => {

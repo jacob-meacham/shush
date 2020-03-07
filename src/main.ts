@@ -2,6 +2,8 @@ import { app, Tray, Menu, systemPreferences, ipcMain } from 'electron'
 import { menubar, Menubar } from 'menubar'
 import * as path from 'path'
 import { audio } from 'system-control'
+import log from 'electron-log'
+import { autoUpdater } from 'electron-updater'
 
 try {
   require('electron-reloader')(module)
@@ -13,19 +15,18 @@ let shushEnabled = true;
 (async () => {
   try {
     await app.whenReady()
-    
-    // const tray = new Tray(path.join('assets', 'icon.png'))
-    // const contextMenu = Menu.buildFromTemplate([
-    //   { label: 'Shush enabled', type: 'checkbox', checked: shushEnabled, click: setShushEnabled },
-    //   { type: 'separator' },
-    //   { label: 'Quit shush', role: 'quit' }
-    // ])
-    // tray.setContextMenu(contextMenu)
+
+    const tray = new Tray(path.resolve(__dirname, '..', 'assets', 'icon.png'))
+    const contextMenu = Menu.buildFromTemplate([
+      { label: 'Shush enabled', type: 'checkbox', checked: shushEnabled, click: setShushEnabled },
+      { type: 'separator' },
+      { label: 'Quit shush', role: 'quit' }
+    ])
+    tray.setContextMenu(contextMenu)
 
     menuBar = menubar({
-      dir: '.',
-      icon: path.join('assets', 'icon.png'),
-      //tray,
+      index: `file://${path.resolve(__dirname, '..', 'index.html')}`,
+      tray,
       preloadWindow: true,
       browserWindow: {
         webPreferences: {
@@ -36,16 +37,24 @@ let shushEnabled = true;
 
     menuBar.on('ready', initShush)
   } catch (e) {
-    console.log(e)
+    log.error(e)
   }
 })()
 
 async function initShush() {
-  menuBar.window.webContents.openDevTools()
-  const access = await systemPreferences.askForMediaAccess('microphone')
-  if (!access) {
-    // TODO: Handle
-    return
+  log.info('Initializing shush')
+  log.info('Checking for updates...')
+  autoUpdater.checkForUpdatesAndNotify()
+
+  log.info('Checking for microphone access...')
+  try {
+    const access = await systemPreferences.askForMediaAccess('microphone')
+    if (!access) {
+      log.error('No microphone access allowed')
+      return
+    }
+  } catch (e) {
+    log.error(e)
   }
 }
 
@@ -55,7 +64,7 @@ async function setShushEnabled() {
 }
 
 ipcMain.on('shush', async (event, data = {}) => {
-  console.log('Shush!', data)
+  log.info('Shush!', data)
   await audio.muted(true)
 })
 
